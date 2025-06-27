@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById("searchInput");
     const viewer = document.getElementById("viewer");
     const imageContainer = document.getElementById("imageContainer");
-
+    const downloadBtn = document.getElementById('downloadBtn');
     // State
     let images = [];
     let currentImages = [];
@@ -28,54 +28,57 @@ document.addEventListener('DOMContentLoaded', () => {
     let customCategories = [];
     const CUSTOM_CATEGORIES_KEY = 'commonsSwipe_customCategories';
 
-   function fetchImages(query) {
-  const apiURL = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=10&prop=imageinfo&iiprop=url`;
+  async function fetchImagesBySearch(query) {
+    const searchURL = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(query)}&srnamespace=6&srlimit=30`;
 
-  return fetch(apiURL)
-    .then(response => response.json())
-    .then(data => {
-      imageContainer.innerHTML = '';
-      images = [];
+    let images = [];
+    const response = await fetch(searchURL);
+    const data = await response.json();
 
-      if (data.query && data.query.pages) {
-        const pages = Object.values(data.query.pages);
-        pages.forEach(page => {
-          if (page.imageinfo && page.imageinfo[0].url) {
-            images.push(page.imageinfo[0].url);
-            const img = document.createElement("img");
-            img.src = page.imageinfo[0].url;
-            imageContainer.appendChild(img);
-          }
-        });
+    if (data.query && data.query.search && data.query.search.length > 0) {
+        const fileTitles = data.query.search
+            .filter(item => item.title.startsWith('File:'))
+            .map(item => item.title);
 
-        if (images.length > 0) {
-          currentIndex = 0;
-          viewer.style.display = 'block';
-          showImage(currentIndex);
-        } else {
-          viewer.style.display = 'none';
-          alert("No images found.");
+        if (fileTitles.length === 0) {
+            return [];
         }
-      } else {
-        viewer.style.display = 'none';
-        alert("No images found.");
-      }
-      // Return images for async/await compatibility
-      return images;
-    })
-    .catch(error => {
-      console.error("API fetch error:", error);
-      alert("Failed to load images.");
-      return [];
-    });
-}
 
+        const batchSize = 50;
+        for (let i = 0; i < fileTitles.length; i += batchSize) {
+            const batch = fileTitles.slice(i, i + batchSize);
+            const titlesParam = batch.map(t => encodeURIComponent(t)).join('|');
+            const infoURL = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&titles=${titlesParam}&prop=imageinfo&iiprop=url|extmetadata|mime`;
+
+            const infoResp = await fetch(infoURL);
+            const infoData = await infoResp.json();
+
+            if (infoData.query && infoData.query.pages) {
+                const pages = Object.values(infoData.query.pages);
+                pages.forEach(page => {
+                    if (page.imageinfo && page.imageinfo[0].url) {
+                        const license = page.imageinfo[0].extmetadata?.LicenseShortName?.value || 'Unknown license';
+                        const author = page.imageinfo[0].extmetadata?.Artist?.value?.replace(/<[^>]*>/g, '') || 'Unknown author';
+                        images.push({
+                            id: page.pageid,
+                            title: page.title,
+                            url: page.imageinfo[0].url,
+                            license,
+                            author
+                        });
+                    }
+                });
+            }
+        }
+    }
+    return images;
+}
  if (searchButton && searchInput) {
     searchButton.addEventListener("click", async () => {
         const query = searchInput.value.trim();
         if (query) {
             currentCategory = ""; // Clear category to avoid conflict
-            currentImages = await fetchImages(query);
+            currentImages = await fetchImagesBySearch(query); // <-- FIXED
             currentIndex = 0;
             if (currentImages.length > 0) {
                 displayCurrentImage();
@@ -88,6 +91,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 }
 
+async function downloadImage(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `wikicommons_image_${currentIndex + 1}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert("Failed to download image.");
+    console.error(err);
+    
+  }
+}
+if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+        if (currentImages.length > 0) {
+            downloadImage(currentImages[currentIndex].url);
+        }
+    });
+}
 
     // Top 50 categories from Wikimedia Commons
     const topCategories = [
@@ -212,29 +242,30 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.query && data.query.pages) {
                 const viewedImages = getViewedImages();
-                const newImages = Object.values(data.query.pages)
-                    .filter(page => {
-                        // Check if file is JPG or PNG
-                        const mime = page.imageinfo?.[0]?.mime;
-                        return mime && (mime.includes('image/jpeg') || mime.includes('image/png'));
-                    })
-                    .filter(page => !viewedImages.includes(page.pageid))
-                    .map(page => {
-                        const license = page.imageinfo?.[0]?.extmetadata?.LicenseShortName?.value;
-                        const author = page.imageinfo?.[0]?.extmetadata?.Artist?.value;
-                        // Strip any HTML from the author field
-                        const cleanAuthor = author ? author.replace(/<[^>]*>/g, '') : 'Unknown author';
-                        // Use Wikimedia's Special:FilePath with width parameter
-                        const imageUrl = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(page.title.replace('File:', ''))}?width=800`;
-                        return {
-                            id: page.pageid,
-                            title: page.title,
-                            url: imageUrl,
-                            license: license || 'Unknown license',
-                            author: cleanAuthor
-                        };
-                    });
-                
+                // ...existing code...
+const newImages = Object.values(data.query.pages)
+    .filter(page => {
+        // Check if file is JPG or PNG
+        const mime = page.imageinfo?.[0]?.mime;
+        return mime && (mime.includes('image/jpeg') || mime.includes('image/png'));
+    })
+    .filter(page => !viewedImages.includes(page.pageid))
+    .map(page => {
+        const license = page.imageinfo?.[0]?.extmetadata?.LicenseShortName?.value;
+        const author = page.imageinfo?.[0]?.extmetadata?.Artist?.value;
+        // Strip any HTML from the author field
+        const cleanAuthor = author ? author.replace(/<[^>]*>/g, '') : 'Unknown author';
+        // Use the direct URL from imageinfo
+        const imageUrl = page.imageinfo[0].url;
+        return {
+            id: page.pageid,
+            title: page.title,
+            url: imageUrl,
+            license: license || 'Unknown license',
+            author: cleanAuthor
+        };
+    });
+// ...existing code...
                 // Shuffle the new images
                 return shuffleArray(newImages);
             }
@@ -731,14 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'ArrowUp':
                     previousImage();
                     break;
-                case 'f':
-                    showView(categoriesView);
-                    break;
-                case 'b':
-                    showView(mainView);
-                    break;
-                case 'r':
-                    clearViewedImages();
+                
                     loadImages();
                     break;
             }

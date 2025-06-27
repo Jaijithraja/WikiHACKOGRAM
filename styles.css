@@ -145,6 +145,54 @@ button i {
     font-size: 1.1rem;
 }
 
+.login-top {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  background-color: #00c6ff;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 16px;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.3s ease;
+}
+
+.login-top:hover {
+  background-color: #0072ff;
+}
+
+#downloadBtn {
+  position: absolute;
+  background: grey;
+  color: white;
+  border: none;
+  top:55%;
+  left:97%;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;       /* centers vertically */
+  justify-content: center;   /* centers horizontally */
+  cursor: pointer;
+  z-index: 3;
+}
+
+#downloadBtn:hover {
+  background-color: #0056b3;
+}
+
+#downloadBtn .icon {
+  width: 4rem;
+  height: 1.9rem;
+  font-size: 3rem;
+  fill: white; /* If using SVG */
+}
+
 .image-container {
     flex: 1;
     overflow: hidden;
@@ -158,7 +206,6 @@ button i {
     position: absolute;
     width: 100%;
     height: 100%;
-    margin-top: 0%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -168,7 +215,7 @@ button i {
     width: 100%;
     height: 100%;
     position: relative;
-    top: 0;
+    
     left: 0;
     display: flex;
     align-items: center;
@@ -436,6 +483,8 @@ button i {
 .swipe-indicator.active {
     opacity: 1;
 }
+
+
 
 .swipe-up {
     top: 0;
@@ -757,8 +806,8 @@ footer {
     }
 
     .like-btn {
-      position: absolute;
-    top:400%;
+        position: absolute;
+       top:400%;
     left:290%;
     background:grey;
     color: #fff;
@@ -770,16 +819,52 @@ footer {
     
     cursor: pointer;
     z-index: 3;
+
     }
 
     .like-btn i {
-      color: #aaa;
-      font-size: 18px;
+      color:white;;
+      font-size: 20px;
+      align-content: center;
     }
 
     .like-btn.liked i {
       color: red;
     }
+
+    .like-btn:hover {
+      background-color: #1e4f91;
+    }
+    .comment-button {
+       position: absolute;
+    top: 45%;
+    right: 1.0rem;
+    
+    background: grey;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+
+    }
+
+    .comment-button i {
+        color:white;
+        align-content: center;
+      font-size: 18px;
+    }
+
+    .comment-button:hover {
+      background-color: #1e4f91;
+    }
+
+   
 
 .filter-button.active {
     color: #4CAF50;
@@ -840,7 +925,12 @@ footer {
     }
     
     .image-container {
-        height: calc(100dvh - 3rem);
+         flex: 1;
+    overflow: hidden;
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    margin-top: 4rem;
     }
     
     .categories-container {
